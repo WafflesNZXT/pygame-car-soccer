@@ -12,10 +12,15 @@ class RenderingTests(unittest.TestCase):
         from src.game import Game
         game = Game()
         try:
-            for state in ('menu', 'controls', 'pause', 'over'):
+            for state in ('menu', 'controls', 'pause', 'over', 'garage', 'stats'):
                 game.state = state
                 game.draw(1/60)
                 self.assertTrue(game.buttons)
+            game.profiles.players[0]['total_xp'] = 200
+            game.rewards = [150, 50]
+            game.state = 'over'
+            game.time = 5
+            game.draw(1/60)
             game.action('play')
             game.match.phase = 'play'
             for car in game.match.cars:
@@ -35,3 +40,15 @@ class RenderingTests(unittest.TestCase):
             self.assertEqual(game.match.remaining, time)
         finally:
             pygame.quit()
+
+    def test_boost_bindings(self):
+        import pygame
+        from src.game import read_controls
+        class Keys:
+            def __init__(self, active): self.active = active
+            def __getitem__(self, key): return key in self.active
+        for key in (pygame.K_RSHIFT, pygame.K_RCTRL):
+            controls = read_controls(Keys({pygame.K_LSHIFT, key}), [False, False])
+            self.assertTrue(controls[0].boost)
+            self.assertTrue(controls[1].boost)
+        self.assertFalse(read_controls(Keys(set()), [False, False])[1].boost)

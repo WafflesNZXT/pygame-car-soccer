@@ -11,6 +11,12 @@ from .particles import Particles
 from .menus import Menus
 from .ui import UI
 from .progression import Profiles, COLORS, level_info
+from .customization import OPTIONS
+
+def read_controls(keys, jumps):
+    """Convert held keys and jump edges to two independent control snapshots."""
+    return [Controls(keys[pygame.K_d]-keys[pygame.K_a], keys[pygame.K_s]-keys[pygame.K_w], jumps[0], keys[pygame.K_LSHIFT]),
+            Controls(keys[pygame.K_RIGHT]-keys[pygame.K_LEFT], keys[pygame.K_DOWN]-keys[pygame.K_UP], jumps[1], keys[pygame.K_RSHIFT] or keys[pygame.K_RCTRL])]
 
 class Game:
     def __init__(self):
@@ -24,6 +30,7 @@ class Game:
         self.match = Match()
         self.profiles = Profiles()
         self.rewards = [0, 0]
+        self.results_start = 0
         self.particles = Particles()
         self.state, self.back = 'menu', 'menu'
         self.buttons = []
@@ -40,6 +47,19 @@ class Game:
             self.state = 'play'
         elif action == 'resume': self.state = 'play'
         elif action in ('garage', 'stats'): self.state = action
+        elif action.startswith('item:'):
+            _, key, player = action.split(':')
+            profile = self.profiles.players[int(player)]
+            choices = OPTIONS[key]
+            current = profile[key]
+            # Cycle every option, but equip only items already unlocked.
+            level = level_info(profile['total_xp'])[0]
+            for step in range(1, len(choices)+1):
+                candidate = (current+step) % len(choices)
+                if choices[candidate][1] <= level:
+                    profile[key] = candidate
+                    break
+            self.profiles.save()
         elif action.startswith('color'):
             i = int(action[-1])
             profile = self.profiles.players[i]
@@ -86,8 +106,7 @@ class Game:
         keys = pygame.key.get_pressed()
         self.accumulator += dt
         while self.accumulator >= STEP:
-            inputs = [Controls(keys[pygame.K_d]-keys[pygame.K_a], keys[pygame.K_s]-keys[pygame.K_w], self.jumps[0], keys[pygame.K_LSHIFT]),
-                      Controls(keys[pygame.K_RIGHT]-keys[pygame.K_LEFT], keys[pygame.K_DOWN]-keys[pygame.K_UP], self.jumps[1], (keys[pygame.K_RSHIFT] or keys[pygame.K_RCTRL]))]
+            inputs = read_controls(keys, self.jumps)
             scorer = self.match.step(STEP, inputs)
             self.jumps = [False, False]
             if scorer is not None:
@@ -100,17 +119,19 @@ class Game:
             self.accumulator -= STEP
         if self.match.phase == 'over':
             self.rewards = self.profiles.reward(self.match.scores)
+            self.results_start = self.time
             self.state = 'over'
 
     def draw(self, dt):
         for i, car in enumerate(self.match.cars):
             car.paint = COLORS[self.profiles.players[i]['color']][1]
+            car.cosmetics = self.profiles.players[i]
         self.renderer.draw(self.screen, self.match, self.time, dt if self.state == 'play' else 0, self.state == 'play')
         self.particles.draw(self.screen)
         self.ui.hud(self.screen, self.match)
         self.buttons = []
         if self.state != 'play':
-            self.buttons = self.menus.draw(self.screen, self.state, self.match, pygame.mouse.get_pos(), self.profiles, self.rewards)
+            self.buttons = self.menus.draw(self.screen, self.state, self.match, pygame.mouse.get_pos(), self.profiles, self.rewards, self.renderer, self.time, self.results_start)
         elif self.match.phase == 'kickoff':
             self.ui.text(self.screen, str(max(1, math.ceil(self.match.delay))), (640, 310), 100)
             self.ui.text(self.screen, 'GET READY', (640, 385), 28, CYAN)
@@ -118,6 +139,8 @@ class Game:
             self.ui.text(self.screen, 'GOAL!', (640, 290 + math.sin(self.time*9)*5), 100,
                          CYAN if self.match.scorer == 0 else ORANGE)
             self.ui.text(self.screen, f'PLAYER {self.match.scorer+1} SCORES', (640, 365), 36)
+        if self.profiles.error:
+            self.ui.text(self.screen, self.profiles.error, (640, 705), 24, (255, 110, 100))
         pygame.display.flip()
 
     def run(self, frames=None, screenshot=None):

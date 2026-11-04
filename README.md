@@ -102,4 +102,8 @@ Arcade contacts use linear impulses without angular impulse or suspension. Fixed
 
 Completed matches award 150 XP for a win, 50 for a loss and 75 each for a draw. Levels need 200 XP initially, increasing by 100 XP per level. Select Garage to cycle through each player's unlocked paint; later paints unlock at levels 3, 5 and 8. Profile XP, match statistics and paint save locally to `~/.neon_kickoff/profiles.json`. Leaving a match before the end awards no XP.
 
-Version 0.2 work in progress: the garage currently supports paint only. Body styles, wheel options, boost effects, decals, accessories, underglow, animated progression and the requested pseudo-3D visual overhaul are not yet implemented.
+The garage offers four body styles, four wheel styles, four boost styles, four decals, and four underglow choices. Click each player's category to cycle through unlocked options; the next locked item's required level is shown. Cosmetics are visual and do not affect physics. Profiles created by earlier versions continue to work. If a save cannot be read, saving is disabled for that session to protect the original file.
+
+The results screen animates XP and shows a level-up message. The stadium, cars and ball use original layered procedural graphics.
+
+Remaining work: dedicated new-item unlock announcements, collision sparks and camera shake, richer boost-specific effects, keyboard garage navigation and interactive MacBook performance/playtesting.

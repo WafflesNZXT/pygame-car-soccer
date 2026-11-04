@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from .customization import OPTIONS
 
 COLORS = [('Cyan', (55,219,255), 1), ('Orange', (255,157,66), 1), ('Red', (240,75,80), 1), ('Blue', (70,120,250), 1), ('Green', (65,220,150), 1), ('Purple', (177,98,245), 3), ('White', (235,245,250), 5), ('Black', (45,50,65), 8)]
 
@@ -13,13 +14,14 @@ def level_info(total):
     return level, total, 200 + 100 * (level - 1)
 
 def default_profile(index):
-    return {'total_xp': 0, 'wins': 0, 'losses': 0, 'draws': 0, 'color': index}
+    return {'total_xp': 0, 'wins': 0, 'losses': 0, 'draws': 0, 'color': index, **{key: 0 for key in OPTIONS}}
 
 class Profiles:
     def __init__(self, path=None):
         self.path = Path(path) if path else Path.home() / '.neon_kickoff' / 'profiles.json'
         self.players = [default_profile(0), default_profile(1)]
         self.error = None
+        self.load_failed = False
         try:
             data = json.loads(self.path.read_text())
             for i in range(2):
@@ -27,13 +29,18 @@ class Profiles:
                 for key in ('total_xp', 'wins', 'losses', 'draws'):
                     value = source.get(key, 0)
                     if type(value) is int and 0 <= value <= 10000000: self.players[i][key] = value
+                for key, options in OPTIONS.items():
+                    value = source.get(key, 0)
+                    if type(value) is int and 0 <= value < len(options): self.players[i][key] = value
                 color = source.get('color', i)
                 if type(color) is int and 0 <= color < len(COLORS): self.players[i]['color'] = color
         except FileNotFoundError: pass
         except (OSError, ValueError, TypeError, KeyError, IndexError):
-            self.error = 'Could not read profiles; using defaults.'
+            self.error = 'Could not read profiles; save disabled to protect data.'
+            self.load_failed = True
 
     def save(self):
+        if self.load_failed: return False
         try:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             temp = self.path.with_suffix('.tmp')

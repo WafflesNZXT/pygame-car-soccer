@@ -31,5 +31,7 @@ class ProgressionTests(unittest.TestCase):
             p = Profiles(path)
             self.assertEqual(p.players[0]['total_xp'], 0)
             self.assertIsNotNone(p.error)
+            self.assertFalse(p.save())
+            self.assertEqual(path.read_text(), '{bad')
 
 if __name__ == '__main__': unittest.main()
