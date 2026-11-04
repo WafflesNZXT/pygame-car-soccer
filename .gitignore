@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Neon Kickoff generated smoke frames
+smoke*.png
