@@ -10,6 +10,7 @@ from .render import Renderer
 from .particles import Particles
 from .menus import Menus
 from .ui import UI
+from .progression import Profiles, COLORS, level_info
 
 class Game:
     def __init__(self):
@@ -21,6 +22,8 @@ class Game:
         self.menus = Menus(self.ui)
         self.renderer = Renderer()
         self.match = Match()
+        self.profiles = Profiles()
+        self.rewards = [0, 0]
         self.particles = Particles()
         self.state, self.back = 'menu', 'menu'
         self.buttons = []
@@ -36,6 +39,17 @@ class Game:
             self.renderer.trail.clear()
             self.state = 'play'
         elif action == 'resume': self.state = 'play'
+        elif action in ('garage', 'stats'): self.state = action
+        elif action.startswith('color'):
+            i = int(action[-1])
+            profile = self.profiles.players[i]
+            level = level_info(profile['total_xp'])[0]
+            for step in range(1, len(COLORS) + 1):
+                choice = (profile['color'] + step) % len(COLORS)
+                if COLORS[choice][2] <= level:
+                    profile['color'] = choice
+                    break
+            self.profiles.save()
         elif action == 'controls': self.back, self.state = self.state, 'controls'
         elif action == 'back': self.state = self.back
         elif action == 'menu': self.state = 'menu'
@@ -57,6 +71,7 @@ class Game:
                     if self.state == 'play': self.state = 'pause'; self.accumulator = 0
                     elif self.state == 'pause': self.action('resume')
                     elif self.state == 'controls': self.action('back')
+                    elif self.state in ('garage', 'stats'): self.action('menu')
                     else: self.action('menu')
                 elif self.state == 'play':
                     if event.key == pygame.K_SPACE: self.jumps[0] = True
@@ -72,7 +87,7 @@ class Game:
         self.accumulator += dt
         while self.accumulator >= STEP:
             inputs = [Controls(keys[pygame.K_d]-keys[pygame.K_a], keys[pygame.K_s]-keys[pygame.K_w], self.jumps[0], keys[pygame.K_LSHIFT]),
-                      Controls(keys[pygame.K_RIGHT]-keys[pygame.K_LEFT], keys[pygame.K_DOWN]-keys[pygame.K_UP], self.jumps[1], keys[pygame.K_RCTRL])]
+                      Controls(keys[pygame.K_RIGHT]-keys[pygame.K_LEFT], keys[pygame.K_DOWN]-keys[pygame.K_UP], self.jumps[1], (keys[pygame.K_RSHIFT] or keys[pygame.K_RCTRL]))]
             scorer = self.match.step(STEP, inputs)
             self.jumps = [False, False]
             if scorer is not None:
@@ -83,15 +98,19 @@ class Game:
                     self.particles.emit(car.pos-direction*42, CYAN if car.player == 0 else ORANGE, direction=direction)
             self.particles.update(STEP)
             self.accumulator -= STEP
-        if self.match.phase == 'over': self.state = 'over'
+        if self.match.phase == 'over':
+            self.rewards = self.profiles.reward(self.match.scores)
+            self.state = 'over'
 
     def draw(self, dt):
+        for i, car in enumerate(self.match.cars):
+            car.paint = COLORS[self.profiles.players[i]['color']][1]
         self.renderer.draw(self.screen, self.match, self.time, dt if self.state == 'play' else 0, self.state == 'play')
         self.particles.draw(self.screen)
         self.ui.hud(self.screen, self.match)
         self.buttons = []
         if self.state != 'play':
-            self.buttons = self.menus.draw(self.screen, self.state, self.match, pygame.mouse.get_pos())
+            self.buttons = self.menus.draw(self.screen, self.state, self.match, pygame.mouse.get_pos(), self.profiles, self.rewards)
         elif self.match.phase == 'kickoff':
             self.ui.text(self.screen, str(max(1, math.ceil(self.match.delay))), (640, 310), 100)
             self.ui.text(self.screen, 'GET READY', (640, 385), 28, CYAN)

@@ -37,7 +37,7 @@ On Linux, install your distribution's `python3-venv` package if creating the env
 | Drive | A / D | Left / Right |
 | Rotate in air | W / S | Up / Down |
 | Jump | Space | Enter |
-| Boost | Left Shift | Right Ctrl |
+| Boost | Left Shift | Right Shift (or Right Ctrl) |
 
 W / Up rotates counterclockwise on screen; S / Down rotates clockwise. Point the car's nose upward and boost to fly. Drive direction determines facing on the ground. Boost regenerates automatically, faster while grounded. Cars stay inside the main field; the ball can enter the goal pockets.
 
@@ -97,3 +97,9 @@ Play a complete match with two people. Check simultaneous keyboard inputs, both 
 ### Prototype limitations
 
 Arcade contacts use linear impulses without angular impulse or suspension. Fixed 120 Hz steps and capped speed reduce tunneling; this is not a swept continuous collision solver. Ground contact automatically levels the car. There is no AI, online multiplayer, audio, key rebinding, controller input or overtime; tied games end in a draw. Resolution is fixed. A long frame is clamped to 50 ms to avoid an unstable catch-up loop, so severe stalls slow simulated match time.
+
+## Progress and paint
+
+Completed matches award 150 XP for a win, 50 for a loss and 75 each for a draw. Levels need 200 XP initially, increasing by 100 XP per level. Select Garage to cycle through each player's unlocked paint; later paints unlock at levels 3, 5 and 8. Profile XP, match statistics and paint save locally to `~/.neon_kickoff/profiles.json`. Leaving a match before the end awards no XP.
+
+Version 0.2 work in progress: the garage currently supports paint only. Body styles, wheel options, boost effects, decals, accessories, underglow, animated progression and the requested pseudo-3D visual overhaul are not yet implemented.

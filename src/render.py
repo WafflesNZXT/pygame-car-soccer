@@ -42,7 +42,7 @@ class Renderer:
 
     def car(self, screen, car, time):
         sprite = pygame.Surface((136, 80), pygame.SRCALPHA)
-        color = CYAN if car.player == 0 else ORANGE
+        color = getattr(car, "paint", CYAN if car.player == 0 else ORANGE)
         # Local +x is always the nose. Mirroring vertical art keeps left-facing cars upright.
         if car.boosting:
             flame = 30 + 12 * math.sin(time * 57)
